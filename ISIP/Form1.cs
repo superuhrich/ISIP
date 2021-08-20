@@ -27,11 +27,6 @@ namespace ISIP {
 
 		int numSamples = 1000;
 		int sampleRate = 2000;
-		static int magSecond;
-		static int magThird;
-		static double PHSecond;
-		static double PHThird;
-
 		string path;
 
 		Complex[] samples;
@@ -41,32 +36,37 @@ namespace ISIP {
 		}
 
 		public double[] GetFracData() {
-			// this is the path to the data that you will need to add to the csv of the data you are looking at.  
-			//string path = "C:/Users/paul.uhrich/OneDrive - Peloton Computer Enterprises Ltd/Frac Data/Data Smoothing/Bonavista Energy Corporation - 102_02-34-033-04W5/ISIPTest.csv";
+			// Get data from files 
 			string[] values = System.IO.File.ReadAllLines(path);
-			int count = values.Length;
-			numSamples = count;
-			double[] data = new double[count];
+			// Get the number of samples,  we are assuming that we are 1 sample per second. ie, 1hz. 
+			numSamples = values.Length;
+			sampleRate = 1;
+			// convert the data from string value in the file,  to doubles for ingestion. 
+			double[] data = new double[numSamples];
 			for ( int i = 0; i < values.Length; i++ ) {
 				data[i] = Convert.ToDouble( values[i] );
 			}
+			// return the double array.
 			return data;
 		}
 
 		public void PlotWaveForm() {
 
+			// Clear the chart in case there is something there. 
 			chart1.Series["Waveform"].Points.Clear();
 			chart1.Series["Second Harmonic"].Points.Clear();
 			chart1.Series["Third Harmonic"].Points.Clear();
 
+			// If we are getting the frac data,  lets get that
+			double[] ISIPData = checkBox3.Checked ? GetFracData() : null;
+
+			// Otherwise we are testing, and we can just generate some curves
 			// Generate fundamenta, 2nd and 3rd harmonic waveforms using MathNet Libraries
 			double[] fundamental = Generate.Sinusoidal(numSamples, sampleRate, 60, 10.0);
-			//double[] second = Generate.Sinusoidal(numSamples, sampleRate, 120, secondHarm, 0.0, secondPH);
-			//double[] third = Generate.Sinusoidal(numSamples, sampleRate, 180, thirdHarm, 0.0, thirdPH);
-			double[] ISIPData = GetFracData();
 			double[] second = Generate.Sinusoidal(numSamples, sampleRate, 120, 5.0);
 			double[] third = Generate.Sinusoidal(numSamples, sampleRate, 180, 2.0);
 
+			// IF we are just teseting,  then make a aggreage waveform. 
 			if ( !checkBox3.Checked ) {
 				samples = new Complex[numSamples];
 
@@ -104,6 +104,7 @@ namespace ISIP {
 						( time, samples[i].Real );
 
 				}
+				// Otherwise we are taking real data,  and lets use that 
 			} else {
 
 				chart1.Series["Waveform"].LegendText = "ISIP Data";
@@ -147,16 +148,11 @@ namespace ISIP {
 
 			for ( int i = 1; i < samples.Length / 2; i++ ) {
 
-
 				// Get the magnitude of each FFT sample;
 				// = abs[sqrt(r2 + r2)]
-				double mag = (2.0/numSamples)*(Math.Abs(Math.Sqrt(Math.Pow(samples[i].Real,2)+Math.Pow(samples[i].Imaginary,2))));
+				//double mag = (2.0/numSamples)*(Math.Abs(Math.Sqrt(Math.Pow(samples[i].Real,2)+Math.Pow(samples[i].Imaginary,2))));
 
-				double mag2 = 2*samples[i].Magnitude/numSamples;
-
-				Complex test = 2*Complex.Conjugate(samples[2])*samples[2]/numSamples;
-
-
+				double magnitude = 2*samples[i].Magnitude/numSamples;
 
 				// Determine how many Hz represented by each sample
 				double hzPerSample = sampleRate / numSamples;
@@ -164,7 +160,7 @@ namespace ISIP {
 				chart2.Series["Frequency"].ChartType = SeriesChartType.Column;
 
 				chart2.Series["Frequency"].Points.AddXY
-					( hzPerSample * i, mag2 );
+					( hzPerSample * i, magnitude );
 
 			}
 
@@ -177,7 +173,7 @@ namespace ISIP {
 			// "Forward" Fourier converts time => Frequency
 			Fourier.Inverse( samples, FourierOptions.Matlab );
 
-			for ( int i = 0; i < samples.Length / (checkBox3.Checked ? 1 : 5); i++ ) {
+			for ( int i = 0; i < samples.Length / ( checkBox3.Checked ? 1 : 5 ); i++ ) {
 				double time = checkBox3.Checked ? i : ((i+1.0)/numSamples/2);
 
 				chart3.Series["Result"].LegendText = "Result";
@@ -196,9 +192,6 @@ namespace ISIP {
 
 		public void FilterFFT( double filter ) {
 
-
-
-			Complex[] filteredComplex = new Complex[numSamples];
 			for ( int i = 0; i < numSamples; i++ ) {
 				if ( rbHPF.Checked ) {
 					if ( 2 * samples[i].Magnitude / numSamples < filter ) {
@@ -218,7 +211,7 @@ namespace ISIP {
 				// Get the magnitude of each FFT sample;
 				// = abs[sqrt(r2 + r2)]
 
-				double mag2 = 2*samples[i].Magnitude/numSamples;
+				double magnitude = 2*samples[i].Magnitude/numSamples;
 
 				// Determine how many Hz represented by each sample
 				double hzPerSample = sampleRate / numSamples;
@@ -226,7 +219,7 @@ namespace ISIP {
 				chart2.Series["FilteredFrequency"].ChartType = SeriesChartType.Column;
 
 				chart2.Series["FilteredFrequency"].Points.AddXY
-					( hzPerSample * i, mag2 );
+					( hzPerSample * i, magnitude );
 
 			}
 		}
@@ -251,7 +244,6 @@ namespace ISIP {
 		}
 
 		private void checkBox3_CheckedChanged( object sender, EventArgs e ) {
-			numSamples = checkBox3.Checked ? 64 : 1000;
 			sampleRate = checkBox3.Checked ? 1 : 2000;
 		}
 
@@ -270,9 +262,8 @@ namespace ISIP {
 		}
 
 		private void btnGetData_Click( object sender, EventArgs e ) {
-			openFileDialog1.ShowDialog();
 
-			if(openFileDialog1.ShowDialog() == DialogResult.OK ) {
+			if ( openFileDialog1.ShowDialog() == DialogResult.OK ) {
 				tbFilePath.Text = openFileDialog1.FileName;
 				path = openFileDialog1.FileName;
 			}
