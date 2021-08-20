@@ -32,6 +32,8 @@ namespace ISIP {
 		static double PHSecond;
 		static double PHThird;
 
+		string path;
+
 		Complex[] samples;
 
 		public Form1() {
@@ -39,9 +41,11 @@ namespace ISIP {
 		}
 
 		public double[] GetFracData() {
-			string path = "C:/Users/paul.uhrich/OneDrive - Peloton Computer Enterprises Ltd/Frac Data/Data Smoothing/Bonavista Energy Corporation - 102_02-34-033-04W5/ISIPTest.csv";
+			// this is the path to the data that you will need to add to the csv of the data you are looking at.  
+			//string path = "C:/Users/paul.uhrich/OneDrive - Peloton Computer Enterprises Ltd/Frac Data/Data Smoothing/Bonavista Energy Corporation - 102_02-34-033-04W5/ISIPTest.csv";
 			string[] values = System.IO.File.ReadAllLines(path);
 			int count = values.Length;
+			numSamples = count;
 			double[] data = new double[count];
 			for ( int i = 0; i < values.Length; i++ ) {
 				data[i] = Convert.ToDouble( values[i] );
@@ -263,6 +267,15 @@ namespace ISIP {
 
 		private void button5_Click( object sender, EventArgs e ) {
 			Reset();
+		}
+
+		private void btnGetData_Click( object sender, EventArgs e ) {
+			openFileDialog1.ShowDialog();
+
+			if(openFileDialog1.ShowDialog() == DialogResult.OK ) {
+				tbFilePath.Text = openFileDialog1.FileName;
+				path = openFileDialog1.FileName;
+			}
 		}
 	}
 }
